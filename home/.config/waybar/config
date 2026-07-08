@@ -1,0 +1,124 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 36,
+  "margin": "6 8 0 8",
+  "spacing": 8,
+
+  "modules-left": [
+    "custom/launcher",
+    "hyprland/workspaces"
+  ],
+
+  "modules-center": [
+    "clock"
+  ],
+
+  "modules-right": [
+    "custom/weather",
+    "custom/gpu",
+    "cpu",
+    "custom/ram",
+    "network",
+    "tray",
+    "pulseaudio",
+    "pulseaudio/slider",
+    "custom/power"
+  ],
+
+  "custom/launcher": {
+    "format": "󰣇",
+    "tooltip": false,
+    "on-click": "rofi -show drun"
+  },
+
+  "hyprland/workspaces": {
+    "format": "{name}",
+    "on-click": "activate",
+    "persistent-workspaces": {
+      "*": 5
+    }
+  },
+
+  "clock": {
+    "format": "{:%I:%M %p}",
+    "tooltip-format": "<tt>{calendar}</tt>",
+    "calendar": {
+      "mode": "month",
+      "weeks-pos": "right",
+      "format": {
+        "today": "<b><u>{}</u></b>"
+      }
+    }
+  },
+
+  "custom/weather": {
+    "exec": "$HOME/.config/waybar/scripts/weather",
+    "return-type": "json",
+    "interval": 900,
+    "format": "{}",
+    "escape": false,
+    "max-length": 36,
+    "exec-on-event": false,
+    "on-click": "sh -lc '$HOME/.config/waybar/scripts/weather --panel >> $HOME/.cache/waybar/weather-click.log 2>&1'",
+    "on-click-right": "sh -lc '$HOME/.config/waybar/scripts/weather --refresh >> $HOME/.cache/waybar/weather-click.log 2>&1'",
+    "tooltip": true
+  },
+
+  "custom/gpu": {
+    "exec": "$HOME/.config/waybar/scripts/gpu",
+    "return-type": "json",
+    "interval": 2,
+    "format": "{}",
+    "tooltip": true
+  },
+
+  "cpu": {
+    "interval": 2,
+    "format": "CPU {usage}%"
+  },
+
+  "custom/ram": {
+    "exec": "$HOME/.config/waybar/scripts/ram",
+    "return-type": "json",
+    "interval": 2,
+    "format": "{}",
+    "tooltip": true
+  },
+
+  "network": {
+    "interval": 3,
+    "format-wifi": "{essid} ↑ {bandwidthUpBits} ↓ {bandwidthDownBits}",
+    "format-ethernet": "{ipaddr} ↑ {bandwidthUpBits} ↓ {bandwidthDownBits}",
+    "format-disconnected": "network off",
+    "tooltip-format": "{ifname}\n{ipaddr}/{cidr}\n↑ {bandwidthUpBits}\n↓ {bandwidthDownBits}",
+    "on-click": "nm-connection-editor",
+    "on-click-right": "ghostty -e nmtui"
+  },
+
+  "tray": {
+    "icon-size": 16,
+    "spacing": 8
+  },
+
+  "pulseaudio": {
+    "format": "vol {volume}%",
+    "format-muted": "vol muted",
+    "tooltip-format": "{desc}\n{volume}%",
+    "on-click": "$HOME/.config/waybar/scripts/audio-device-menu",
+    "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "scroll-step": 5
+  },
+
+  "pulseaudio/slider": {
+    "min": 0,
+    "max": 100,
+    "orientation": "horizontal"
+  },
+
+  "custom/power": {
+    "format": "⏻",
+    "tooltip": false,
+    "on-click": "$HOME/.config/waybar/scripts/power-menu"
+  }
+}

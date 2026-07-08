@@ -1,0 +1,11 @@
+[Unit]
+Description=Block sleep and hibernate while the desktop is active
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/systemd-inhibit --what=sleep --who=%u --why=Use-OLED-screensaver-instead-of-sleep-or-hibernate --mode=block /usr/bin/sleep infinity
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

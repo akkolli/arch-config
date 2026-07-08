@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+choice="$(
+  printf 'lock\nlogout\nreboot\nshutdown\n' |
+    rofi -dmenu -p Power -theme-str 'window { width: 280px; }' || true
+)"
+
+[ -n "$choice" ] || exit 0
+
+case "$choice" in
+  lock)
+    "$HOME/.local/share/quickshell-lockscreen/lock.sh"
+    ;;
+  logout)
+    hyprctl dispatch exit
+    ;;
+  reboot)
+    systemctl reboot
+    ;;
+  shutdown)
+    systemctl poweroff
+    ;;
+esac

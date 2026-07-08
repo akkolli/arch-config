@@ -1,0 +1,486 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LOCATION="${WAYBAR_WEATHER_LOCATION:-}"
+LOCATION_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/waybar/weather-location"
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/waybar"
+CACHE_FILE="$CACHE_DIR/weather-open-meteo-celsius.json"
+CACHE_MAX_AGE_SECONDS=$((30 * 60))
+MODE="${1:-}"
+CLICK_LOG="$CACHE_DIR/weather-click.log"
+
+if [[ -z "$LOCATION" && -r "$LOCATION_FILE" ]]; then
+  LOCATION="$(tr -d '\r\n' < "$LOCATION_FILE")"
+fi
+
+if [[ "$MODE" == "--refresh" ]]; then
+  rm -f "$CACHE_FILE"
+  exit 0
+fi
+
+json_error() {
+  local reason="$1"
+  jq -cn --arg tooltip "$reason" '{text: "weather n/a", tooltip: $tooltip, class: ["weather", "error"]}'
+}
+
+if [[ -z "$LOCATION" ]]; then
+  json_error "set WAYBAR_WEATHER_LOCATION or ~/.config/waybar/weather-location"
+  exit 0
+fi
+
+urlencode() {
+  jq -nr --arg value "$1" '$value|@uri'
+}
+
+resolve_location() {
+  local direct_lat="${WAYBAR_WEATHER_LATITUDE:-}"
+  local direct_lon="${WAYBAR_WEATHER_LONGITUDE:-}"
+
+  if [[ -n "$direct_lat" && -n "$direct_lon" ]]; then
+    jq -cn \
+      --arg name "$LOCATION" \
+      --argjson latitude "$direct_lat" \
+      --argjson longitude "$direct_lon" \
+      '{name: $name, latitude: $latitude, longitude: $longitude, timezone: "auto"}'
+    return
+  fi
+
+  if [[ "$LOCATION" =~ ^[[:space:]]*(-?[0-9]+([.][0-9]+)?)[[:space:],]+(-?[0-9]+([.][0-9]+)?)[[:space:]]*$ ]]; then
+    jq -cn \
+      --arg name "$LOCATION" \
+      --argjson latitude "${BASH_REMATCH[1]}" \
+      --argjson longitude "${BASH_REMATCH[3]}" \
+      '{name: $name, latitude: $latitude, longitude: $longitude, timezone: "auto"}'
+    return
+  fi
+
+  local query encoded geo
+  query="$(jq -nr --arg value "$LOCATION" '$value | split(",")[0] | gsub("^\\s+|\\s+$"; "")')"
+  encoded="$(urlencode "$query")"
+
+  geo="$(curl -fsL --connect-timeout 4 --max-time 10 \
+    "https://geocoding-api.open-meteo.com/v1/search?name=${encoded}&count=10&language=en&format=json")"
+
+  jq -ce --arg wanted "$LOCATION" '
+    def clean: ascii_downcase | gsub("[^a-z0-9]+"; " ") | gsub("^\\s+|\\s+$"; "");
+    ($wanted | clean | split(" ") | map(select(length > 1))) as $terms
+    | (.results // [])
+    | map(
+        . as $place
+        | ([.name, .admin1, .admin2, .country] | map(. // "") | join(" ") | clean) as $hay
+        | $place + {
+            score: (
+              reduce $terms[] as $term (0; . + (if ($hay | contains($term)) then 1 else 0 end))
+              + (if ((.country_code // "") == "US") then 1 else 0 end)
+            )
+          }
+      )
+    | sort_by(.score) | reverse | .[0]
+    | select(.latitude != null and .longitude != null)
+    | {
+        name,
+        admin1,
+        country,
+        latitude,
+        longitude,
+        timezone: (.timezone // "auto")
+      }
+  ' <<<"$geo"
+}
+
+fetch_weather() {
+  local location_json lat lon forecast bundle tmp
+
+  location_json="$(resolve_location)" || return 1
+  lat="$(jq -r '.latitude' <<<"$location_json")"
+  lon="$(jq -r '.longitude' <<<"$location_json")"
+
+  if ! forecast="$(curl -fsL --connect-timeout 3 --max-time 6 \
+    "https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_gusts_10m&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,cloud_cover,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,wind_speed_10m_max,sunrise,sunset&temperature_unit=celsius&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto&forecast_days=7")"; then
+    return 1
+  fi
+  jq -e . >/dev/null 2>&1 <<<"$forecast" || return 1
+
+  bundle="$(jq -cn \
+    --argjson location "$location_json" \
+    --argjson forecast "$forecast" \
+    --arg fetched_at "$(date +%s)" \
+    '{source: "open-meteo", fetched_at: ($fetched_at | tonumber), location: $location, forecast: $forecast}')" || return 1
+
+  mkdir -p "$CACHE_DIR"
+  tmp="$(mktemp "${CACHE_FILE}.tmp.XXXXXX")" || return 1
+  printf '%s\n' "$bundle" > "$tmp"
+  mv "$tmp" "$CACHE_FILE"
+  printf '%s\n' "$bundle"
+}
+
+cache_is_fresh() {
+  [[ -s "$CACHE_FILE" ]] || return 1
+  jq -e . "$CACHE_FILE" >/dev/null 2>&1 || return 1
+  local modified now age
+  modified="$(stat -c %Y "$CACHE_FILE" 2>/dev/null)" || return 1
+  now="$(date +%s)"
+  age=$((now - modified))
+  ((age <= CACHE_MAX_AGE_SECONDS))
+}
+
+fallback_wttrbar() {
+  local wttrbar_bin
+  local location_args=()
+
+  wttrbar_bin="$(command -v wttrbar || true)"
+  if [[ -z "$wttrbar_bin" && -x "$HOME/.local/bin/wttrbar" ]]; then
+    wttrbar_bin="$HOME/.local/bin/wttrbar"
+  fi
+  [[ -n "$wttrbar_bin" ]] || return 1
+
+  if [[ -n "$LOCATION" ]]; then
+    location_args=(--location "$LOCATION")
+  fi
+
+  "$wttrbar_bin" \
+    --nerd \
+    --mph \
+    --custom-indicator '{ICON} {temp_C}°C' \
+    --date-format '%a %m/%d' \
+    --ampm \
+    --observation-time \
+    "${location_args[@]}"
+}
+
+render_weather() {
+  local data="$1"
+  local cached="${2:-0}"
+  local cache_reason="${3:-}"
+
+  jq -ce \
+    --arg cached "$cached" \
+    --arg cache_reason "$cache_reason" '
+      def roundnum: (.*10 | round / 10);
+      def temp: round | tostring + "°C";
+      def pct: if . == null then "--" else (round | tostring + "%") end;
+      def rain_pct: if . == null or . < 10 then "--" else (round | tostring + "%") end;
+      def mph: if . == null then "--" else (round | tostring + " mph") end;
+      def lpad($width):
+        tostring as $text
+        | if ($text | length) >= $width then $text
+          else (" " * ($width - ($text | length))) + $text
+          end;
+      def rpad($width):
+        tostring as $text
+        | if ($text | length) >= $width then $text
+          else $text + (" " * ($width - ($text | length)))
+          end;
+      def esc:
+        tostring
+        | gsub("&"; "&amp;")
+        | gsub("<"; "&lt;")
+        | gsub(">"; "&gt;");
+      def clock:
+        (split("T")[1][0:2] | tonumber) as $hour
+        | (($hour % 12) | if . == 0 then 12 else . end | tostring)
+          + " "
+          + (if $hour < 12 then "AM" else "PM" end);
+      def cell: rpad(6);
+      def stamp:
+        strptime("%Y-%m-%dT%H:%M") | mktime | strftime("%b %-d, %-I:%M %p");
+      def weather_text($code):
+        if   $code == 0 then "Clear"
+        elif $code == 1 then "Mostly clear"
+        elif $code == 2 then "Partly cloudy"
+        elif $code == 3 then "Cloudy"
+        elif ($code == 45 or $code == 48) then "Fog"
+        elif ($code >= 51 and $code <= 57) then "Drizzle"
+        elif ($code >= 61 and $code <= 67) then "Rain"
+        elif ($code >= 71 and $code <= 77) then "Snow"
+        elif ($code >= 80 and $code <= 82) then "Showers"
+        elif ($code >= 85 and $code <= 86) then "Snow showers"
+        elif ($code >= 95 and $code <= 99) then "Thunderstorm"
+        else "Weather"
+        end;
+      def icon($code):
+        if   $code == 0 then "󰖙"
+        elif ($code == 1 or $code == 2) then "󰖕"
+        elif $code == 3 then "󰖐"
+        elif ($code == 45 or $code == 48) then "󰖑"
+        elif ($code >= 51 and $code <= 67) then "󰖗"
+        elif ($code >= 71 and $code <= 77) then "󰖘"
+        elif ($code >= 80 and $code <= 82) then "󰖗"
+        elif ($code >= 85 and $code <= 86) then "󰖘"
+        elif ($code >= 95 and $code <= 99) then "󰖓"
+        else "󰖐"
+        end;
+      def class_for($code; $temp):
+        ["weather"]
+        + (if $cached == "1" then ["cached"] else [] end)
+        + (if $code >= 95 then ["storm"]
+           elif ($code >= 71 and $code <= 86) then ["snow"]
+           elif ($code >= 51 and $code <= 67) or ($code >= 80 and $code <= 82) then ["rain"]
+           elif ($code == 45 or $code == 48) then ["fog"]
+           elif $temp >= 31 then ["hot"]
+           elif $temp <= 0 then ["cold"]
+           else ["normal"]
+           end);
+      def temp_bar($lo; $hi; $glo; $ghi):
+        12 as $width
+        | (($ghi - $glo) | if . <= 0 then 1 else . end) as $span
+        | (((($lo - $glo) / $span) * $width) | floor) as $start
+        | (((($hi - $glo) / $span) * $width) | ceil) as $end
+        | reduce range(0; $width) as $i ("";
+            . + (if $i < $start then "·"
+                 elif $i <= $end then "━"
+                 else "·"
+                 end)
+          );
+
+      .forecast as $f
+      | .location as $loc
+      | ($f.current.temperature_2m // empty) as $current
+      | ($f.current.apparent_temperature // $current) as $feels
+      | ($f.current.weather_code // 3) as $code
+      | ($f.daily.temperature_2m_max[0] // $current) as $today_hi
+      | ($f.daily.temperature_2m_min[0] // $current) as $today_lo
+      | ($f.daily.precipitation_probability_max[0] // 0) as $today_pop
+      | ($f.hourly.time | to_entries | map(select(.value >= $f.current.time)) | .[0].key // 0) as $hour0
+      | [range($hour0; [($hour0 + 12), ($f.hourly.time | length)] | min)
+          | {
+              time: $f.hourly.time[.],
+              temp: $f.hourly.temperature_2m[.],
+              feels: $f.hourly.apparent_temperature[.],
+              pop: ($f.hourly.precipitation_probability[.] // 0),
+              code: ($f.hourly.weather_code[.] // 3),
+              wind: $f.hourly.wind_speed_10m[.]
+            }
+        ] as $next12
+      | [range($hour0; [($hour0 + 24), ($f.hourly.time | length)] | min)
+          | {
+              time: $f.hourly.time[.],
+              temp: $f.hourly.temperature_2m[.],
+              pop: ($f.hourly.precipitation_probability[.] // 0),
+              code: ($f.hourly.weather_code[.] // 3)
+            }
+        ] as $next24
+      | ($next12 | map(select(.pop >= 45)) | .[0]) as $next_wet
+      | ($next24 | map(.pop) | max // 0) as $soon_pop
+      | ($next12 | [.[0,2,4,6,9,11] // empty]) as $hour_cards
+      | ($f.daily.temperature_2m_min | min) as $week_lo
+      | ($f.daily.temperature_2m_max | max) as $week_hi
+      | [range(0; ($f.daily.time | length))
+          | {
+              day: (if $f.daily.time[.] == ($f.current.time[0:10]) then "Today"
+                    else ($f.daily.time[.] | strptime("%Y-%m-%d") | mktime | strftime("%a"))
+                    end),
+              code: ($f.daily.weather_code[.] // 3),
+              lo: $f.daily.temperature_2m_min[.],
+              hi: $f.daily.temperature_2m_max[.],
+              pop: ($f.daily.precipitation_probability_max[.] // 0),
+              wind: $f.daily.wind_speed_10m_max[.],
+              uv: $f.daily.uv_index_max[.]
+            }
+        ] as $days
+      | (
+          if $next_wet then
+            "  rain " + ($next_wet.time | clock)
+          elif $soon_pop >= 35 then
+            "  rain " + ($soon_pop | pct)
+          else
+            ""
+          end
+        ) as $next_signal
+      | (
+          icon($code) + " " +
+          ($current | temp) + "  " +
+          "H:" + ($today_hi | temp) + " " +
+          "L:" + ($today_lo | temp) +
+          $next_signal
+        ) as $text
+      | ([($loc.name // ""), ($loc.admin1 // "")] | map(select(length > 0)) | join(", ")) as $place
+      | ($hour_cards | map(.time | clock | cell) | join("")) as $hour_times
+      | ($hour_cards | map(icon(.code) | cell) | join("")) as $hour_icons
+      | ($hour_cards | map(.temp | temp | cell) | join("")) as $hour_temps
+      | ($hour_cards | map(.pop | rain_pct | cell) | join("")) as $hour_rain
+      | (
+          if $next_wet then
+            "Rain likely around " + ($next_wet.time | clock) + " (" + ($next_wet.pop | pct) + ")."
+          elif $today_pop >= 35 then
+            "Rain chance peaks at " + ($today_pop | pct) + " today."
+          else
+            "No meaningful rain expected today."
+          end
+          + " High " + ($today_hi | temp) + ", low " + ($today_lo | temp) + "."
+        ) as $today_note
+      | (
+          "<span weight=\"bold\" size=\"large\">" + (icon($code) | esc) + " " + (($current | temp) | esc) + "  " + (weather_text($code) | esc) + "</span>\n" +
+          ($place | esc) + "\n" +
+          "Feels " + (($feels | temp) | esc) +
+          "   H:" + (($today_hi | temp) | esc) +
+          "   L:" + (($today_lo | temp) | esc) +
+          "   Rain:" + (($today_pop | rain_pct) | esc) + "\n" +
+          "Wind " + (($f.current.wind_speed_10m | mph) | esc) +
+          "   Gust " + (($f.current.wind_gusts_10m | mph) | esc) +
+          "   Humidity " + (($f.current.relative_humidity_2m | pct) | esc) +
+          "\n\n<span foreground=\"#93aaa0\">Today</span>\n" +
+          ($today_note | esc) +
+          "\n\n<span foreground=\"#93aaa0\">Next 12 Hours</span>\n<tt>" +
+          ((("Time" | rpad(6)) + $hour_times + "\n" +
+            ("Sky"  | rpad(6)) + $hour_icons + "\n" +
+            ("Temp" | rpad(6)) + $hour_temps + "\n" +
+            ("Rain" | rpad(6)) + $hour_rain) | esc) +
+          "</tt>\n\n<span foreground=\"#93aaa0\">7 Days</span>\n<tt>" +
+          ((("Day" | rpad(7)) + ("Sky" | rpad(5)) + ("Lo" | lpad(4)) + " " + ("Range" | rpad(12)) + " " + ("Hi" | lpad(4)) + "  " + ("Rain" | lpad(4)) + "\n" +
+            ($days
+              | map(
+                  (.day | rpad(7)) +
+                  (icon(.code) | rpad(5)) +
+                  ((.lo | temp) | lpad(4)) + " " +
+                  (temp_bar(.lo; .hi; $week_lo; $week_hi)) + " " +
+                  ((.hi | temp) | lpad(4)) + "  " +
+                  ((.pop | rain_pct) | lpad(4))
+                )
+              | join("\n"))) | esc) +
+          "</tt>" +
+          (if $cached == "1" then
+            "\n\n<span foreground=\"#93aaa0\">Cached: " +
+            ((.fetched_at | strflocaltime("%b %-d, %-I:%M %p")) | esc) +
+            (if $cache_reason != "" then " - " + ($cache_reason | esc) else "" end) +
+            "</span>"
+          else
+            "\n\n<span foreground=\"#93aaa0\">Updated " + (($f.current.time | stamp) | esc) + "</span>"
+          end)
+        ) as $tooltip
+      | {
+          text: $text,
+          tooltip: $tooltip,
+          class: class_for($code; $current),
+          percentage: ($current | round)
+        }
+    ' <<<"$data"
+}
+
+use_cache_or_na() {
+  local reason="$1"
+  local cached_data
+
+  if [[ -s "$CACHE_FILE" ]] && cached_data="$(<"$CACHE_FILE")" && jq -e . >/dev/null 2>&1 <<<"$cached_data"; then
+    if render_weather "$cached_data" 1 "$reason"; then
+      exit 0
+    fi
+  fi
+
+  if fallback_wttrbar; then
+    exit 0
+  fi
+
+  json_error "$reason"
+  exit 0
+}
+
+get_weather_data() {
+  local cached_data
+
+  if cache_is_fresh; then
+    if cached_data="$(<"$CACHE_FILE")" && jq -e . >/dev/null 2>&1 <<<"$cached_data"; then
+      printf '%s\n' "$cached_data"
+      return 0
+    fi
+  fi
+
+  fetch_weather
+}
+
+show_forecast() {
+  local data rendered title body
+
+  if data="$(get_weather_data)"; then
+    rendered="$(render_weather "$data")"
+  elif ! rendered="$(fallback_wttrbar)"; then
+    return 1
+  fi
+  title="$(jq -r '.text' <<<"$rendered")"
+  body="$(jq -r '.tooltip' <<<"$rendered")"
+
+  notify-send \
+    --app-name="Waybar Weather" \
+    --hint=string:x-canonical-private-synchronous:waybar-weather \
+    --expire-time=12000 \
+    "$title" \
+    "$body"
+}
+
+plain_text() {
+  sed -E \
+    -e 's/<[^>]+>//g' \
+    -e 's/&amp;/\&/g' \
+    -e 's/&lt;/</g' \
+    -e 's/&gt;/>/g'
+}
+
+show_panel() {
+  local data rendered title body message panel_src panel_bin
+
+  mkdir -p "$CACHE_DIR"
+  printf '[%s] weather click\n' "$(date '+%F %T')" >> "$CLICK_LOG"
+
+  if ! data="$(get_weather_data)"; then
+    if ! rendered="$(fallback_wttrbar)"; then
+      return 1
+    fi
+    title="$(jq -r '.text' <<<"$rendered")"
+    body="$(jq -r '.tooltip' <<<"$rendered" | plain_text)"
+    message="$title"$'\n\n'"$body"
+    rofi -e "$message"
+    return 0
+  fi
+
+  panel_src="${XDG_CONFIG_HOME:-$HOME/.config}/waybar/scripts/weather-panel.c"
+  panel_bin="$CACHE_DIR/weather-panel"
+
+  if pgrep -u "$(id -u)" -x weather-panel >/dev/null 2>&1; then
+    pkill -u "$(id -u)" -x weather-panel >/dev/null 2>&1 || true
+    return 0
+  fi
+
+  if [[ -r "$panel_src" ]] && command -v gcc >/dev/null 2>&1 && command -v pkg-config >/dev/null 2>&1; then
+    if [[ ! -x "$panel_bin" || "$panel_src" -nt "$panel_bin" ]]; then
+      gcc "$panel_src" -o "$panel_bin" $(pkg-config --cflags --libs gtk4 json-glib-1.0) >> "$CLICK_LOG" 2>&1 || true
+    fi
+  fi
+
+  if [[ -x "$panel_bin" ]]; then
+    setsid "$panel_bin" "$CACHE_FILE" >> "$CLICK_LOG" 2>&1 &
+    return 0
+  fi
+
+  rendered="$(render_weather "$data")"
+  title="$(jq -r '.text' <<<"$rendered")"
+  body="$(jq -r '.tooltip' <<<"$rendered" | plain_text)"
+  message="$title"$'\n\n'"$body"
+
+  rofi -e "$message"
+}
+
+if [[ "$MODE" == "--notify" ]]; then
+  if show_forecast; then
+    exit 0
+  fi
+  use_cache_or_na "cannot access weather service"
+fi
+
+if [[ "$MODE" == "--panel" ]]; then
+  if show_panel; then
+    exit 0
+  fi
+  use_cache_or_na "cannot open weather panel"
+fi
+
+if cache_is_fresh; then
+  if cached_data="$(<"$CACHE_FILE")" && jq -e . >/dev/null 2>&1 <<<"$cached_data" && render_weather "$cached_data"; then
+    exit 0
+  fi
+fi
+
+if data="$(fetch_weather)" && render_weather "$data"; then
+  exit 0
+fi
+
+use_cache_or_na "cannot access weather service"

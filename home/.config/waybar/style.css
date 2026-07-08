@@ -1,0 +1,164 @@
+@define-color bg #1b1420;
+@define-color bg2 #241827;
+@define-color surface #302133;
+@define-color surface2 #49304b;
+@define-color fg #fff0dc;
+@define-color muted #c8aeb0;
+@define-color accent #ffb15c;
+@define-color blue #a9d4df;
+@define-color yellow #ffe0a8;
+@define-color red #d985a3;
+
+* {
+  font-family: "JetBrainsMono Nerd Font Propo", "Noto Sans", sans-serif;
+  font-size: 13px;
+  border: none;
+  min-height: 0;
+}
+
+window#waybar {
+  background: transparent;
+  color: @fg;
+}
+
+#custom-launcher,
+#workspaces,
+#clock,
+#custom-weather,
+#custom-gpu,
+#cpu,
+#custom-ram,
+#network,
+#tray,
+#idle_inhibitor,
+#pulseaudio,
+#pulseaudio-slider,
+#custom-power {
+  background: @surface;
+  color: @fg;
+  padding: 0 11px;
+  margin: 3px 2px;
+  border-radius: 999px;
+}
+
+#custom-launcher {
+  color: @accent;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+#workspaces {
+  padding: 0 5px;
+}
+
+#workspaces button {
+  color: @muted;
+  background: transparent;
+  padding: 0 8px;
+  margin: 3px 1px;
+  border-radius: 999px;
+}
+
+#workspaces button.active {
+  color: @bg;
+  background: @accent;
+}
+
+#workspaces button:hover {
+  color: @fg;
+  background: @surface2;
+}
+
+#workspaces button.urgent {
+  color: @bg;
+  background: @red;
+}
+
+#clock {
+  color: @accent;
+  font-weight: 600;
+}
+
+#custom-weather {
+  color: @yellow;
+}
+
+#custom-gpu {
+  color: @blue;
+}
+
+#custom-gpu.off,
+#network.disconnected {
+  color: @muted;
+}
+
+#cpu {
+  color: @accent;
+}
+
+#custom-ram {
+  color: @fg;
+}
+
+#network {
+  color: @accent;
+}
+
+#tray {
+  padding: 0 9px;
+}
+
+#idle_inhibitor {
+  color: @muted;
+}
+
+#idle_inhibitor.activated {
+  color: @bg;
+  background: @accent;
+}
+
+#pulseaudio {
+  color: @fg;
+}
+
+#pulseaudio.muted {
+  color: @muted;
+}
+
+#pulseaudio-slider {
+  min-width: 78px;
+  padding: 0 10px;
+}
+
+#pulseaudio-slider slider {
+  min-height: 0;
+  min-width: 0;
+  opacity: 0;
+  background-image: none;
+  border: none;
+  box-shadow: none;
+}
+
+#pulseaudio-slider trough {
+  min-height: 5px;
+  min-width: 78px;
+  border-radius: 999px;
+  background: @surface2;
+}
+
+#pulseaudio-slider highlight {
+  border-radius: 999px;
+  background: @accent;
+}
+
+#custom-power {
+  color: @red;
+  font-weight: 700;
+}
+
+tooltip {
+  background: @bg2;
+  color: @fg;
+  border: 1px solid @surface2;
+  border-radius: 10px;
+}

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+read used total <<< "$(free -m | awk '/Mem:/ { printf "%.1f %.1f", $3/1024, $2/1024 }')"
+
+text="RAM ${used}/${total}G"
+tooltip="$(free -h)"
+
+jq -cn --arg text "$text" --arg tooltip "$tooltip" '{text:$text, tooltip:$tooltip}'

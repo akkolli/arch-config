@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+if ! command -v nvidia-smi >/dev/null; then
+  jq -cn --arg text "GPU n/a" '{text:$text, class:"off"}'
+  exit 0
+fi
+
+line="$(nvidia-smi --query-gpu=power.draw,memory.used,memory.total,utilization.gpu,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -n1)"
+
+if [ -z "$line" ]; then
+  jq -cn --arg text "GPU off" '{text:$text, class:"off"}'
+  exit 0
+fi
+
+IFS=',' read -r power mem_used mem_total util temp <<< "$line"
+
+trim() { echo "$1" | xargs; }
+
+power="$(trim "$power")"
+mem_used="$(trim "$mem_used")"
+mem_total="$(trim "$mem_total")"
+util="$(trim "$util")"
+temp="$(trim "$temp")"
+
+power_w="$(awk -v x="$power" 'BEGIN { printf "%.0f", x }')"
+mem_g="$(awk -v x="$mem_used" 'BEGIN { printf "%.1f", x / 1024 }')"
+total_g="$(awk -v x="$mem_total" 'BEGIN { printf "%.0f", x / 1024 }')"
+
+text="GPU ${power_w}W ${mem_g}/${total_g}G"
+tooltip="GPU util: ${util}%
+GPU temp: ${temp}°C
+GPU power: ${power_w}W
+VRAM: ${mem_g}/${total_g}G"
+
+jq -cn --arg text "$text" --arg tooltip "$tooltip" '{text:$text, tooltip:$tooltip}'

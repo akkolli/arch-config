@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send -a waybar "Audio output" "$1"
+  fi
+}
+
+if ! command -v pactl >/dev/null 2>&1; then
+  notify "pactl is not installed"
+  exit 1
+fi
+
+if ! command -v rofi >/dev/null 2>&1; then
+  notify "rofi is not installed"
+  exit 1
+fi
+
+current="$(pactl get-default-sink 2>/dev/null || true)"
+
+declare -a rows=()
+declare -a names=()
+
+while IFS=$'\t' read -r name description; do
+  [[ -n "${name:-}" ]] || continue
+
+  label="${description:-$name}"
+  if [[ "$label" != "$name" ]]; then
+    label="$label ($name)"
+  fi
+
+  if [[ "$name" == "$current" ]]; then
+    label="* $label"
+  fi
+
+  rows+=("$label")
+  names+=("$name")
+done < <(
+  pactl list sinks | awk '
+    function emit() {
+      if (name != "") {
+        if (description == "") {
+          description = name
+        }
+        print name "\t" description
+      }
+    }
+
+    /^Sink #[0-9]+/ {
+      emit()
+      name = ""
+      description = ""
+      next
+    }
+
+    /^[[:space:]]*Name:/ {
+      sub(/^[[:space:]]*Name:[[:space:]]*/, "")
+      name = $0
+      next
+    }
+
+    /^[[:space:]]*Description:/ {
+      sub(/^[[:space:]]*Description:[[:space:]]*/, "")
+      description = $0
+      next
+    }
+
+    END {
+      emit()
+    }
+  '
+)
+
+if ((${#rows[@]} == 0)); then
+  notify "No audio output devices found"
+  exit 0
+fi
+
+selection="$(
+  printf '%s\n' "${rows[@]}" |
+    rofi -dmenu -i -p "Audio output" -theme-str 'window { width: 560px; }' || true
+)"
+
+[[ -n "$selection" ]] || exit 0
+
+selected=""
+for index in "${!rows[@]}"; do
+  if [[ "${rows[$index]}" == "$selection" ]]; then
+    selected="${names[$index]}"
+    break
+  fi
+done
+
+[[ -n "$selected" ]] || exit 0
+
+pactl set-default-sink "$selected"
+
+while read -r input; do
+  [[ -n "$input" ]] || continue
+  pactl move-sink-input "$input" "$selected" >/dev/null 2>&1 || true
+done < <(pactl list short sink-inputs | awk '{print $1}')
+
+selection="${selection#\* }"
+notify "Switched to $selection"

@@ -1,0 +1,25 @@
+# Generated Mountain colors. This file is selected by ~/.config/ghostty/config.
+
+background = #121518
+foreground = #e4e0d4
+cursor-color = #d6b98a
+
+selection-background = #343a3f
+selection-foreground = #e4e0d4
+
+palette = 0=#121518
+palette = 1=#c98f7b
+palette = 2=#8f9466
+palette = 3=#d6b98a
+palette = 4=#8f9698
+palette = 5=#b89a86
+palette = 6=#aeb6b7
+palette = 7=#e4e0d4
+palette = 8=#5d6263
+palette = 9=#daa18e
+palette = 10=#a8ad78
+palette = 11=#f0d49a
+palette = 12=#a9afb0
+palette = 13=#d0af99
+palette = 14=#c9d0d0
+palette = 15=#fbf6ea

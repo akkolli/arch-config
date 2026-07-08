@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -u
+
+services=(
+  hyprpaper.service
+  hyprpolkitagent.service
+  mako.service
+  hypridle.service
+  cliphist.service
+  waybar-hyprland.service
+)
+
+export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-Hyprland}"
+export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-wayland}"
+
+env_names=(
+  WAYLAND_DISPLAY
+  XDG_CURRENT_DESKTOP
+  XDG_SESSION_TYPE
+  DISPLAY
+  HYPRLAND_INSTANCE_SIGNATURE
+  XCURSOR_THEME
+  XCURSOR_SIZE
+  HYPRCURSOR_SIZE
+  QT_QPA_PLATFORM
+  QT_QPA_PLATFORMTHEME
+  QT_WAYLAND_DISABLE_WINDOWDECORATION
+)
+
+systemctl --user import-environment "${env_names[@]}" >/dev/null 2>&1 || true
+dbus-update-activation-environment --systemd "${env_names[@]}" >/dev/null 2>&1 || true
+
+failed=0
+
+systemctl --user reset-failed "${services[@]}" >/dev/null 2>&1 || true
+systemctl --user stop "${services[@]}" >/dev/null 2>&1 || true
+
+for service in "${services[@]}"; do
+  if ! systemctl --user start "$service"; then
+    failed=1
+  fi
+done
+
+exit "$failed"

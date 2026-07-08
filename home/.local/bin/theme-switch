@@ -1,0 +1,1018 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+theme="${1:-}"
+
+case "$theme" in
+  anime)
+    NAME="Anime"
+    FONT_UI_FAMILY="JetBrainsMono Nerd Font Propo"
+    FONT_MONO_FAMILY="JetBrainsMono Nerd Font"
+    BG="#1b1420"
+    BG2="#241827"
+    SURFACE="#302133"
+    SURFACE2="#49304b"
+    FG="#fff0dc"
+    MUTED="#c8aeb0"
+    ACCENT="#ffb15c"
+    BLUE="#a9d4df"
+    YELLOW="#ffe0a8"
+    RED="#d985a3"
+    TERM_BLACK="#1b1420"
+    TERM_RED="#d985a3"
+    TERM_GREEN="#d3bc86"
+    TERM_YELLOW="#ffb15c"
+    TERM_BLUE="#8b4a7e"
+    TERM_MAGENTA="#b65f90"
+    TERM_CYAN="#a9d4df"
+    TERM_WHITE="#fff0dc"
+    TERM_BRIGHT_BLACK="#7c6171"
+    TERM_BRIGHT_RED="#ef9ab1"
+    TERM_BRIGHT_GREEN="#ead5a1"
+    TERM_BRIGHT_YELLOW="#ffd08a"
+    TERM_BRIGHT_BLUE="#a76099"
+    TERM_BRIGHT_MAGENTA="#d97caf"
+    TERM_BRIGHT_CYAN="#cce9ef"
+    TERM_BRIGHT_WHITE="#ffffff"
+    ;;
+  forest)
+    NAME="Forest"
+    FONT_UI_FAMILY="Adwaita Sans"
+    FONT_MONO_FAMILY="Adwaita Mono"
+    BG="#0b1412"
+    BG2="#121d1b"
+    SURFACE="#182722"
+    SURFACE2="#253831"
+    FG="#dbe6dc"
+    MUTED="#93aaa0"
+    ACCENT="#8fbf73"
+    BLUE="#9db6c1"
+    YELLOW="#c6b575"
+    RED="#d18b7b"
+    TERM_BLACK="#0b1412"
+    TERM_RED="#d18b7b"
+    TERM_GREEN="#8fbf73"
+    TERM_YELLOW="#c6b575"
+    TERM_BLUE="#6f9a73"
+    TERM_MAGENTA="#88a47d"
+    TERM_CYAN="#9db6a9"
+    TERM_WHITE="#dbe6dc"
+    TERM_BRIGHT_BLACK="#52645d"
+    TERM_BRIGHT_RED="#e2a091"
+    TERM_BRIGHT_GREEN="#a8d78a"
+    TERM_BRIGHT_YELLOW="#d9ca89"
+    TERM_BRIGHT_BLUE="#87b48a"
+    TERM_BRIGHT_MAGENTA="#a1bd96"
+    TERM_BRIGHT_CYAN="#b8ccc0"
+    TERM_BRIGHT_WHITE="#f4faf3"
+    ;;
+  mountain)
+    NAME="Mountain"
+    FONT_UI_FAMILY="Noto Sans"
+    FONT_MONO_FAMILY="JetBrainsMonoNL Nerd Font"
+    BG="#121518"
+    BG2="#1a1d20"
+    SURFACE="#23282c"
+    SURFACE2="#343a3f"
+    FG="#e4e0d4"
+    MUTED="#a9aaa3"
+    ACCENT="#d6b98a"
+    BLUE="#8fb2c8"
+    YELLOW="#f0d49a"
+    RED="#c98f7b"
+    TERM_BLACK="#121518"
+    TERM_RED="#c98f7b"
+    TERM_GREEN="#8f9466"
+    TERM_YELLOW="#d6b98a"
+    TERM_BLUE="#8f9698"
+    TERM_MAGENTA="#b89a86"
+    TERM_CYAN="#aeb6b7"
+    TERM_WHITE="#e4e0d4"
+    TERM_BRIGHT_BLACK="#5d6263"
+    TERM_BRIGHT_RED="#daa18e"
+    TERM_BRIGHT_GREEN="#a8ad78"
+    TERM_BRIGHT_YELLOW="#f0d49a"
+    TERM_BRIGHT_BLUE="#a9afb0"
+    TERM_BRIGHT_MAGENTA="#d0af99"
+    TERM_BRIGHT_CYAN="#c9d0d0"
+    TERM_BRIGHT_WHITE="#fbf6ea"
+    ;;
+  ocean)
+    NAME="Ocean"
+    FONT_UI_FAMILY="JetBrainsMonoNL Nerd Font"
+    FONT_MONO_FAMILY="JetBrainsMono Nerd Font Mono"
+    BG="#071013"
+    BG2="#0b1820"
+    SURFACE="#10252c"
+    SURFACE2="#173741"
+    FG="#d7e5d6"
+    MUTED="#8ba7a5"
+    ACCENT="#35b3b0"
+    BLUE="#2f7fbf"
+    YELLOW="#d8d2a4"
+    RED="#d47f72"
+    TERM_BLACK="#071013"
+    TERM_RED="#d47f72"
+    TERM_GREEN="#35b3b0"
+    TERM_YELLOW="#d8d2a4"
+    TERM_BLUE="#2f7fbf"
+    TERM_MAGENTA="#6f8ed6"
+    TERM_CYAN="#66cfc9"
+    TERM_WHITE="#d7e5d6"
+    TERM_BRIGHT_BLACK="#50686d"
+    TERM_BRIGHT_RED="#e59689"
+    TERM_BRIGHT_GREEN="#5dd0cd"
+    TERM_BRIGHT_YELLOW="#ebe3b7"
+    TERM_BRIGHT_BLUE="#5fa8dc"
+    TERM_BRIGHT_MAGENTA="#8fabee"
+    TERM_BRIGHT_CYAN="#8ee4df"
+    TERM_BRIGHT_WHITE="#f4f8ec"
+    ;;
+  *)
+    echo "Usage: theme-switch anime|forest|mountain|ocean"
+    exit 1
+    ;;
+esac
+
+hex() {
+  echo "${1#\#}"
+}
+
+sgr_rgb() {
+  local value="${1#\#}"
+  printf '%d;%d;%d' "0x${value:0:2}" "0x${value:2:2}" "0x${value:4:2}"
+}
+
+ACCENT_RGB="$(hex "$ACCENT")"
+BLUE_RGB="$(hex "$BLUE")"
+SURFACE2_RGB="$(hex "$SURFACE2")"
+BG_RGB="$(hex "$BG")"
+FG_RGB="$(hex "$FG")"
+RED_RGB="$(hex "$RED")"
+YELLOW_RGB="$(hex "$YELLOW")"
+LS_DIR_RGB="$(sgr_rgb "$TERM_GREEN")"
+LS_LINK_RGB="$(sgr_rgb "$TERM_CYAN")"
+LS_EXEC_RGB="$(sgr_rgb "$TERM_BRIGHT_GREEN")"
+LS_ARCHIVE_RGB="$(sgr_rgb "$TERM_YELLOW")"
+LS_IMAGE_RGB="$(sgr_rgb "$TERM_MAGENTA")"
+LS_AUDIO_RGB="$(sgr_rgb "$TERM_MAGENTA")"
+LS_WARN_RGB="$(sgr_rgb "$TERM_YELLOW")"
+LS_ERROR_RGB="$(sgr_rgb "$TERM_RED")"
+PROMPT_ACCENT_RGB="$(sgr_rgb "$ACCENT")"
+PROMPT_MUTED_RGB="$(sgr_rgb "$MUTED")"
+PROMPT_PATH_RGB="$(sgr_rgb "$TERM_GREEN")"
+PROMPT_FG_RGB="$(sgr_rgb "$FG")"
+FONT_UI="$FONT_UI_FAMILY 11"
+FONT_MONO="$FONT_MONO_FAMILY 11"
+FONT_TERMINAL_SIZE=15
+GTK_THEME_NAME="Materia-dark"
+ICON_THEME_NAME="Papirus-Dark"
+CURSOR_THEME_NAME="capitaine-cursors"
+CURSOR_SIZE=24
+
+hypr_monitors() {
+  if command -v jq >/dev/null 2>&1; then
+    hyprctl monitors -j 2>/dev/null | jq -r '.[].name' 2>/dev/null || true
+  else
+    hyprctl monitors 2>/dev/null | awk '/^Monitor / {print $2}' || true
+  fi
+}
+
+safe_restart() {
+  local name="$1"
+  local log="$2"
+  shift 2
+
+  local old_pids new_pids pid new_started cmdline
+  old_pids="$(pgrep -x "$name" || true)"
+  cmdline="$*"
+
+  if command -v hyprctl >/dev/null 2>&1; then
+    if [ "$name" = "hyprpaper" ]; then
+      hyprctl dispatch exec "$cmdline" >/dev/null 2>&1 || true
+    else
+      hyprctl dispatch exec "sh -c 'exec $cmdline >$log 2>&1'" >/dev/null 2>&1 || true
+    fi
+  else
+    "$@" >"$log" 2>&1 &
+    disown "$!" >/dev/null 2>&1 || true
+  fi
+
+  sleep 1
+  new_pids="$(pgrep -x "$name" || true)"
+  new_started=0
+
+  while IFS= read -r pid; do
+    [ -n "$pid" ] || continue
+    if ! printf '%s\n' "$old_pids" | grep -qx "$pid"; then
+      new_started=1
+    fi
+  done <<<"$new_pids"
+
+  if [ "$new_started" -ne 1 ]; then
+    echo "Failed to start $name. See $log."
+    return 1
+  fi
+
+  if [ -n "$old_pids" ]; then
+    while IFS= read -r pid; do
+      [ -n "$pid" ] || continue
+      kill "$pid" >/dev/null 2>&1 || true
+    done <<<"$old_pids"
+  fi
+}
+
+apply_wallpaper() {
+  [ -n "$wall" ] || return 0
+
+  if ! pgrep -x hyprpaper >/dev/null 2>&1; then
+    safe_restart hyprpaper /tmp/hyprpaper-theme.log hyprpaper || true
+    sleep 1
+  fi
+
+  local applied=0 monitor
+
+  while IFS= read -r monitor; do
+    [ -n "$monitor" ] || continue
+    if hyprctl hyprpaper wallpaper "$monitor,$wall,cover" >/dev/null 2>&1; then
+      applied=1
+    fi
+  done < <(hypr_monitors)
+
+  if [ "$applied" -eq 0 ]; then
+    if hyprctl hyprpaper wallpaper ",$wall,cover" >/dev/null 2>&1; then
+      applied=1
+    fi
+  fi
+
+  if [ "$applied" -eq 0 ]; then
+    safe_restart hyprpaper /tmp/hyprpaper-theme.log hyprpaper || true
+  fi
+}
+
+mkdir -p \
+  "$HOME/.config/ghostty" \
+  "$HOME/.config/ghostty/themes" \
+  "$HOME/.config/waybar" \
+  "$HOME/.config/rofi" \
+  "$HOME/.config/mako" \
+  "$HOME/.config/gtk-3.0" \
+  "$HOME/.config/gtk-4.0" \
+  "$HOME/.config/hypr" \
+  "$HOME/.config/qt5ct" \
+  "$HOME/.config/qt6ct" \
+  "$HOME/.config/theme" \
+  "$HOME/.config/themes/wallpapers" \
+  "$HOME/.icons/default" \
+  "$HOME/.local/share/icons/default"
+
+# Find wallpaper, case-insensitive.
+wall="$(find "$HOME/.config/themes/wallpapers" -maxdepth 1 -type f \
+  \( -iname "${theme}.png" -o \
+     -iname "${theme}.jpg" -o \
+     -iname "${theme}.jpeg" -o \
+     -iname "${theme}.webp" -o \
+     -iname "${theme}.jxl" -o \
+     -iname "${theme}.avif" \) \
+  -print -quit 2>/dev/null || true)"
+
+if [ -n "$wall" ]; then
+  wall="$(realpath "$wall")"
+fi
+
+# Ghostty profile. Colors live in the active generated theme below.
+cat > "$HOME/.config/ghostty/config" <<GHOSTTY
+# Generated by theme-switch. Edit ~/.local/bin/theme-switch to change this profile.
+font-family = $FONT_MONO_FAMILY
+font-family-bold = $FONT_MONO_FAMILY
+font-family-italic = $FONT_MONO_FAMILY
+font-family-bold-italic = $FONT_MONO_FAMILY
+font-size = $FONT_TERMINAL_SIZE
+font-synthetic-style = bold,italic,bold-italic
+
+theme = theme-switch-active
+
+minimum-contrast = 1.15
+bold-color = bright
+faint-opacity = 0.58
+
+background-opacity = 0.82
+background-opacity-cells = false
+background-blur = false
+
+cursor-style = block
+cursor-style-blink = false
+cursor-text = cell-background
+cursor-click-to-move = true
+
+mouse-hide-while-typing = true
+copy-on-select = true
+selection-clear-on-copy = false
+selection-clear-on-typing = true
+
+window-padding-x = 14
+window-padding-y = 12
+window-padding-balance = true
+window-padding-color = background
+window-decoration = false
+window-inherit-working-directory = true
+tab-inherit-working-directory = true
+split-inherit-working-directory = true
+
+gtk-titlebar = false
+gtk-tabs-location = hidden
+gtk-toolbar-style = flat
+gtk-wide-tabs = false
+
+shell-integration = detect
+shell-integration-features = cursor,title,path,no-sudo,no-ssh-env,no-ssh-terminfo
+app-notifications = no-clipboard-copy,config-reload
+
+keybind = ctrl+shift+r=reload_config
+keybind = ctrl+shift+enter=toggle_split_zoom
+keybind = ctrl+shift+\\=new_split:right
+keybind = ctrl+shift+-=new_split:down
+GHOSTTY
+
+cat > "$HOME/.config/ghostty/themes/theme-switch-active" <<GHOSTTYTHEME
+# Generated $NAME colors. This file is selected by ~/.config/ghostty/config.
+
+background = $BG
+foreground = $FG
+cursor-color = $ACCENT
+
+selection-background = $SURFACE2
+selection-foreground = $FG
+
+palette = 0=$TERM_BLACK
+palette = 1=$TERM_RED
+palette = 2=$TERM_GREEN
+palette = 3=$TERM_YELLOW
+palette = 4=$TERM_BLUE
+palette = 5=$TERM_MAGENTA
+palette = 6=$TERM_CYAN
+palette = 7=$TERM_WHITE
+palette = 8=$TERM_BRIGHT_BLACK
+palette = 9=$TERM_BRIGHT_RED
+palette = 10=$TERM_BRIGHT_GREEN
+palette = 11=$TERM_BRIGHT_YELLOW
+palette = 12=$TERM_BRIGHT_BLUE
+palette = 13=$TERM_BRIGHT_MAGENTA
+palette = 14=$TERM_BRIGHT_CYAN
+palette = 15=$TERM_BRIGHT_WHITE
+GHOSTTYTHEME
+
+cp "$HOME/.config/ghostty/themes/theme-switch-active" "$HOME/.config/ghostty/themes/theme-switch-$theme"
+
+# Shell colors. GNU ls defaults directories to bold blue unless LS_COLORS is set.
+cat > "$HOME/.config/theme/ls-colors.sh" <<LSCOLORS
+export LS_COLORS='rs=0:di=01;38;2;${LS_DIR_RGB}:ln=01;38;2;${LS_LINK_RGB}:ex=01;38;2;${LS_EXEC_RGB}:*.tar=01;38;2;${LS_ARCHIVE_RGB}:*.tgz=01;38;2;${LS_ARCHIVE_RGB}:*.zip=01;38;2;${LS_ARCHIVE_RGB}:*.gz=01;38;2;${LS_ARCHIVE_RGB}:*.bz2=01;38;2;${LS_ARCHIVE_RGB}:*.xz=01;38;2;${LS_ARCHIVE_RGB}:*.7z=01;38;2;${LS_ARCHIVE_RGB}:*.jpg=01;38;2;${LS_IMAGE_RGB}:*.jpeg=01;38;2;${LS_IMAGE_RGB}:*.png=01;38;2;${LS_IMAGE_RGB}:*.webp=01;38;2;${LS_IMAGE_RGB}:*.gif=01;38;2;${LS_IMAGE_RGB}:*.svg=01;38;2;${LS_IMAGE_RGB}:*.mp3=01;38;2;${LS_AUDIO_RGB}:*.flac=01;38;2;${LS_AUDIO_RGB}:*.wav=01;38;2;${LS_AUDIO_RGB}:*.mp4=01;38;2;${LS_AUDIO_RGB}:*.mkv=01;38;2;${LS_AUDIO_RGB}:or=01;38;2;${LS_ERROR_RGB}:mi=01;38;2;${LS_ERROR_RGB}:ow=01;38;2;${LS_WARN_RGB}:tw=01;38;2;${LS_WARN_RGB}'
+LSCOLORS
+
+cat > "$HOME/.config/theme/prompt.sh" <<PROMPT
+export THEME_NAME='$NAME'
+PS1='\\[\\e[38;2;${PROMPT_ACCENT_RGB}m\\][\\u@\\h\\[\\e[38;2;${PROMPT_MUTED_RGB}m\\] \\[\\e[38;2;${PROMPT_PATH_RGB}m\\]\\W\\[\\e[38;2;${PROMPT_ACCENT_RGB}m\\]]\\[\\e[38;2;${PROMPT_FG_RGB}m\\]\\\\$ \\[\\e[0m\\]'
+PROMPT
+
+cat > "$HOME/.config/starship.toml" <<STARSHIP
+# Generated by theme-switch. Edit ~/.local/bin/theme-switch to change this prompt.
+palette = "theme"
+add_newline = false
+command_timeout = 200
+
+format = "\$directory\$git_branch\$git_status\$character"
+
+[palettes.theme]
+bg = "$BG"
+bg2 = "$BG2"
+surface = "$SURFACE"
+surface2 = "$SURFACE2"
+fg = "$FG"
+muted = "$MUTED"
+accent = "$BLUE"
+blue = "$BLUE"
+yellow = "$YELLOW"
+red = "$RED"
+term_green = "$TERM_GREEN"
+term_cyan = "$TERM_CYAN"
+term_magenta = "$TERM_MAGENTA"
+
+[directory]
+style = "fg:fg"
+repo_root_style = "fg:fg"
+read_only = " ro"
+truncation_length = 2
+truncation_symbol = "…/"
+repo_root_format = "[\$repo_root](\$repo_root_style)[\$path](\$style)[\$read_only](\$read_only_style) "
+format = "[\$path](\$style)[\$read_only](\$read_only_style) "
+
+[git_branch]
+style = "italic fg:accent"
+format = "[\$branch](\$style) "
+
+[git_status]
+style = "fg:muted"
+format = "[\$all_status\$ahead_behind](\$style)"
+ahead = "⇡\${count} "
+diverged = "⇕⇡\${ahead_count}⇣\${behind_count} "
+behind = "⇣\${count} "
+conflicted = "= "
+up_to_date = ""
+untracked = "? "
+modified = "! "
+stashed = ""
+staged = ""
+renamed = ""
+deleted = ""
+
+[status]
+disabled = false
+style = "fg:red"
+format = "[✗](\$style) "
+
+[character]
+success_symbol = "[❯](fg:accent)"
+error_symbol = "[❯](fg:red)"
+vimcmd_symbol = "[❮](fg:muted)"
+STARSHIP
+
+# Hyprpaper config.
+if [ -n "$wall" ]; then
+  {
+    cat <<PAPER
+splash = false
+ipc = true
+
+wallpaper {
+    monitor =
+    path = $wall
+    fit_mode = cover
+}
+PAPER
+
+    while IFS= read -r monitor; do
+      [ -n "$monitor" ] || continue
+      cat <<PAPER
+
+wallpaper {
+    monitor = $monitor
+    path = $wall
+    fit_mode = cover
+}
+PAPER
+    done < <(hypr_monitors)
+  } > "$HOME/.config/hypr/hyprpaper.conf"
+fi
+
+# Hyprland colors.
+cat > "$HOME/.config/hypr/theme.conf" <<HYPRTHEME
+general {
+    gaps_in = 5
+    gaps_out = 10
+    border_size = 2
+    col.active_border = rgb($ACCENT_RGB) rgb($BLUE_RGB) 45deg
+    col.inactive_border = rgb($SURFACE2_RGB)
+}
+
+decoration {
+    rounding = 12
+
+    shadow {
+        enabled = true
+        range = 16
+        render_power = 3
+        color = rgba(00000066)
+    }
+
+    blur {
+        enabled = true
+        size = 4
+        passes = 2
+        vibrancy = 0.16
+    }
+}
+HYPRTHEME
+
+# Waybar colors.
+cat > "$HOME/.config/waybar/style.css" <<WAYBAR
+@define-color bg $BG;
+@define-color bg2 $BG2;
+@define-color surface $SURFACE;
+@define-color surface2 $SURFACE2;
+@define-color fg $FG;
+@define-color muted $MUTED;
+@define-color accent $ACCENT;
+@define-color blue $BLUE;
+@define-color yellow $YELLOW;
+@define-color red $RED;
+
+* {
+  font-family: "$FONT_UI_FAMILY", "Noto Sans", sans-serif;
+  font-size: 13px;
+  border: none;
+  min-height: 0;
+}
+
+window#waybar {
+  background: transparent;
+  color: @fg;
+}
+
+#custom-launcher,
+#workspaces,
+#clock,
+#custom-weather,
+#custom-gpu,
+#cpu,
+#custom-ram,
+#network,
+#tray,
+#idle_inhibitor,
+#pulseaudio,
+#pulseaudio-slider,
+#custom-power {
+  background: @surface;
+  color: @fg;
+  padding: 0 11px;
+  margin: 3px 2px;
+  border-radius: 999px;
+}
+
+#custom-launcher {
+  color: @accent;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+#workspaces {
+  padding: 0 5px;
+}
+
+#workspaces button {
+  color: @muted;
+  background: transparent;
+  padding: 0 8px;
+  margin: 3px 1px;
+  border-radius: 999px;
+}
+
+#workspaces button.active {
+  color: @bg;
+  background: @accent;
+}
+
+#workspaces button:hover {
+  color: @fg;
+  background: @surface2;
+}
+
+#workspaces button.urgent {
+  color: @bg;
+  background: @red;
+}
+
+#clock {
+  color: @accent;
+  font-weight: 600;
+}
+
+#custom-weather {
+  color: @yellow;
+}
+
+#custom-gpu {
+  color: @blue;
+}
+
+#custom-gpu.off,
+#network.disconnected {
+  color: @muted;
+}
+
+#cpu {
+  color: @accent;
+}
+
+#custom-ram {
+  color: @fg;
+}
+
+#network {
+  color: @accent;
+}
+
+#tray {
+  padding: 0 9px;
+}
+
+#idle_inhibitor {
+  color: @muted;
+}
+
+#idle_inhibitor.activated {
+  color: @bg;
+  background: @accent;
+}
+
+#pulseaudio {
+  color: @fg;
+}
+
+#pulseaudio.muted {
+  color: @muted;
+}
+
+#pulseaudio-slider {
+  min-width: 78px;
+  padding: 0 10px;
+}
+
+#pulseaudio-slider slider {
+  min-height: 0;
+  min-width: 0;
+  opacity: 0;
+  background-image: none;
+  border: none;
+  box-shadow: none;
+}
+
+#pulseaudio-slider trough {
+  min-height: 5px;
+  min-width: 78px;
+  border-radius: 999px;
+  background: @surface2;
+}
+
+#pulseaudio-slider highlight {
+  border-radius: 999px;
+  background: @accent;
+}
+
+#custom-power {
+  color: @red;
+  font-weight: 700;
+}
+
+tooltip {
+  background: @bg2;
+  color: @fg;
+  border: 1px solid @surface2;
+  border-radius: 10px;
+}
+WAYBAR
+
+# Rofi.
+cat > "$HOME/.config/rofi/config.rasi" <<ROFICONFIG
+configuration {
+  modi: "drun,run,window";
+  show-icons: true;
+  icon-theme: "Papirus-Dark";
+  font: "$FONT_UI";
+  terminal: "ghostty";
+  drun-display-format: "{name}";
+  display-drun: "apps";
+  display-run: "run";
+  display-window: "windows";
+  matching: "fuzzy";
+  sorting-method: "fzf";
+  scroll-method: 0;
+  sidebar-mode: false;
+}
+@theme "~/.config/rofi/theme.rasi"
+ROFICONFIG
+
+cat > "$HOME/.config/rofi/theme.rasi" <<ROFI
+* {
+  bg: $BG;
+  bg2: $BG2;
+  surface: $SURFACE;
+  surface2: $SURFACE2;
+  fg: $FG;
+  muted: $MUTED;
+  accent: $ACCENT;
+  blue: $BLUE;
+  yellow: $YELLOW;
+  red: $RED;
+
+  background-color: transparent;
+  text-color: @fg;
+}
+
+window {
+  width: 42%;
+  border-radius: 10px;
+  background-color: @bg;
+  border: 1px;
+  border-color: @surface2;
+  padding: 16px;
+}
+
+mainbox {
+  spacing: 12px;
+}
+
+inputbar {
+  background-color: @surface;
+  border-radius: 8px;
+  padding: 10px 12px;
+  spacing: 10px;
+}
+
+prompt {
+  text-color: @accent;
+}
+
+entry {
+  placeholder: "Search";
+  placeholder-color: @muted;
+}
+
+listview {
+  columns: 1;
+  lines: 8;
+  spacing: 6px;
+  fixed-height: true;
+}
+
+element {
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+element selected {
+  background-color: @surface2;
+}
+
+element urgent,
+element selected urgent {
+  text-color: @red;
+}
+
+element-icon {
+  size: 24px;
+  margin: 0 10px 0 0;
+}
+
+element-text {
+  text-color: @fg;
+}
+
+element selected element-text {
+  text-color: @accent;
+}
+
+message {
+  border-radius: 8px;
+  background-color: @surface;
+  padding: 10px;
+}
+
+textbox {
+  text-color: @fg;
+}
+ROFI
+
+# Mako.
+cat > "$HOME/.config/mako/config" <<MAKO
+font=$FONT_UI_FAMILY 10
+background-color=$BG
+text-color=$FG
+border-color=$ACCENT
+progress-color=over $ACCENT
+icons=1
+max-icon-size=48
+icon-border-radius=8
+markup=1
+actions=1
+format=<b>%s</b>\\n%b
+anchor=top-right
+layer=overlay
+border-size=2
+border-radius=8
+outer-margin=8,8,0,0
+margin=10
+padding=12
+width=380
+height=140
+max-visible=5
+max-history=100
+history=1
+sort=-time
+default-timeout=5000
+ignore-timeout=0
+MAKO
+
+# Hyprlock.
+cat > "$HOME/.config/hypr/hyprlock.conf" <<LOCK
+general {
+    hide_cursor = true
+}
+
+background {
+    monitor =
+    path = screenshot
+    blur_passes = 3
+    blur_size = 8
+    noise = 0.0117
+    contrast = 0.9
+    brightness = 0.62
+    vibrancy = 0.16
+    vibrancy_darkness = 0.1
+}
+
+label {
+    monitor =
+    text = cmd[update:1000] date +"%I:%M %p"
+    color = rgba(${FG_RGB}f2)
+    font_size = 64
+    font_family = $FONT_UI_FAMILY
+    position = 0, 90
+    halign = center
+    valign = center
+}
+
+label {
+    monitor =
+    text = cmd[update:60000] date +"%A, %B %d"
+    color = rgba(${MUTED#\#}e6)
+    font_size = 18
+    font_family = $FONT_UI_FAMILY
+    position = 0, 42
+    halign = center
+    valign = center
+}
+
+label {
+    monitor =
+    text = cmd[update:60000] whoami
+    color = rgba(${ACCENT_RGB}f2)
+    font_size = 18
+    font_family = $FONT_UI_FAMILY
+    position = 0, 12
+    halign = center
+    valign = center
+}
+
+input-field {
+    monitor =
+    size = 340, 58
+    outline_thickness = 2
+    dots_size = 0.22
+    dots_spacing = 0.18
+    dots_center = true
+    outer_color = rgba(${ACCENT_RGB}b8)
+    inner_color = rgba(${BG_RGB}c7)
+    font_color = rgba(${FG_RGB}ff)
+    fail_color = rgba(${RED_RGB}ff)
+    check_color = rgba(${YELLOW_RGB}ff)
+    placeholder_text = <i>Password</i>
+    fail_text = <i>\$FAIL</i>
+    fade_on_empty = false
+    rounding = 12
+    position = 0, -70
+    halign = center
+    valign = center
+}
+LOCK
+
+# GTK/libadwaita apps read these settings for their UI and monospace fonts.
+gsettings set org.gnome.desktop.interface font-name "$FONT_UI" >/dev/null 2>&1 || true
+gsettings set org.gnome.desktop.interface monospace-font-name "$FONT_MONO" >/dev/null 2>&1 || true
+gsettings set org.gnome.desktop.interface gtk-theme "$GTK_THEME_NAME" >/dev/null 2>&1 || true
+gsettings set org.gnome.desktop.interface icon-theme "$ICON_THEME_NAME" >/dev/null 2>&1 || true
+gsettings set org.gnome.desktop.interface cursor-theme "$CURSOR_THEME_NAME" >/dev/null 2>&1 || true
+gsettings set org.gnome.desktop.interface cursor-size "$CURSOR_SIZE" >/dev/null 2>&1 || true
+gsettings set org.gnome.desktop.interface color-scheme prefer-dark >/dev/null 2>&1 || true
+
+cat > "$HOME/.config/gtk-3.0/settings.ini" <<GTK
+[Settings]
+gtk-theme-name=$GTK_THEME_NAME
+gtk-icon-theme-name=$ICON_THEME_NAME
+gtk-cursor-theme-name=$CURSOR_THEME_NAME
+gtk-cursor-theme-size=$CURSOR_SIZE
+gtk-font-name=$FONT_UI
+gtk-application-prefer-dark-theme=true
+GTK
+
+cat > "$HOME/.config/gtk-4.0/settings.ini" <<GTK
+[Settings]
+gtk-theme-name=$GTK_THEME_NAME
+gtk-icon-theme-name=$ICON_THEME_NAME
+gtk-cursor-theme-name=$CURSOR_THEME_NAME
+gtk-cursor-theme-size=$CURSOR_SIZE
+gtk-font-name=$FONT_UI
+gtk-application-prefer-dark-theme=true
+GTK
+
+# Xcursor fallback used by GTK, Qt, XWayland, and apps that do not read gsettings.
+cat > "$HOME/.icons/default/index.theme" <<CURSOR
+[Icon Theme]
+Inherits=$CURSOR_THEME_NAME
+CURSOR
+
+cat > "$HOME/.local/share/icons/default/index.theme" <<CURSOR
+[Icon Theme]
+Inherits=$CURSOR_THEME_NAME
+CURSOR
+
+# qt5ct/qt6ct read these when QT_QPA_PLATFORMTHEME is set by Hyprland.
+cat > "$HOME/.config/qt5ct/qt5ct.conf" <<QT5CT
+[Appearance]
+color_scheme_path=/usr/share/qt5ct/colors/darker.conf
+custom_palette=false
+icon_theme=$ICON_THEME_NAME
+standard_dialogs=default
+style=Fusion
+
+[Fonts]
+fixed="$FONT_MONO_FAMILY,11,-1,5,50,0,0,0,0,0"
+general="$FONT_UI_FAMILY,11,-1,5,50,0,0,0,0,0"
+
+[Interface]
+activate_item_on_single_click=1
+buttonbox_layout=0
+cursor_flash_time=1000
+dialog_buttons_have_icons=1
+double_click_interval=400
+keyboard_scheme=2
+menus_have_icons=true
+show_shortcuts_in_context_menus=true
+stylesheets=/usr/share/qt5ct/qss/fusion-fixes.qss,/usr/share/qt5ct/qss/scrollbar-simple.qss,/usr/share/qt5ct/qss/tooltip-simple.qss
+toolbutton_style=4
+underline_shortcut=1
+wheel_scroll_lines=3
+QT5CT
+
+cat > "$HOME/.config/qt6ct/qt6ct.conf" <<QT6CT
+[Appearance]
+color_scheme_path=/usr/share/qt6ct/colors/darker.conf
+custom_palette=false
+icon_theme=$ICON_THEME_NAME
+standard_dialogs=default
+style=Fusion
+
+[Fonts]
+fixed="$FONT_MONO_FAMILY,11,-1,5,50,0,0,0,0,0"
+general="$FONT_UI_FAMILY,11,-1,5,50,0,0,0,0,0"
+
+[Interface]
+activate_item_on_single_click=1
+buttonbox_layout=0
+cursor_flash_time=1000
+dialog_buttons_have_icons=1
+double_click_interval=400
+keyboard_scheme=2
+menus_have_icons=true
+show_shortcuts_in_context_menus=true
+stylesheets=/usr/share/qt6ct/qss/fusion-fixes.qss,/usr/share/qt6ct/qss/scrollbar-simple.qss,/usr/share/qt6ct/qss/tooltip-simple.qss
+toolbutton_style=4
+underline_shortcut=1
+wheel_scroll_lines=3
+QT6CT
+
+# KDE/Qt apps such as Dolphin read these values too.
+cat > "$HOME/.config/kdeglobals" <<KDE
+[General]
+font=$FONT_UI_FAMILY,11,-1,5,400,0,0,0,0,0
+fixed=$FONT_MONO_FAMILY,11,-1,5,400,0,0,0,0,0
+smallestReadableFont=$FONT_UI_FAMILY,9,-1,5,400,0,0,0,0,0
+toolBarFont=$FONT_UI_FAMILY,11,-1,5,400,0,0,0,0,0
+menuFont=$FONT_UI_FAMILY,11,-1,5,400,0,0,0,0,0
+
+[Icons]
+Theme=$ICON_THEME_NAME
+KDE
+
+# Reload Hyprland config.
+hyprctl reload >/dev/null 2>&1 || true
+
+# Restart Waybar without leaving the session without a bar if startup fails.
+safe_restart waybar /tmp/waybar-theme.log waybar || true
+
+# Reload or start Mako.
+if pgrep -x mako >/dev/null; then
+  makoctl reload >/dev/null 2>&1 || true
+else
+  mako >/tmp/mako-theme.log 2>&1 &
+  disown >/dev/null 2>&1 || true
+fi
+
+# Apply wallpaper through Hyprpaper IPC; restart only if IPC is unavailable.
+if [ -n "$wall" ]; then
+  apply_wallpaper
+fi
+
+echo "Applied $NAME theme."
+
+if [ -n "$wall" ]; then
+  echo "Wallpaper: $wall"
+else
+  echo "No wallpaper found for $theme."
+  echo "Put one here:"
+  echo "$HOME/.config/themes/wallpapers/${theme}.jpg"
+fi
+
+echo "Ghostty config updated."
+echo "Open a new Ghostty window to see terminal color changes."
+echo "Starship prompt updated."
+echo "Font: $FONT_UI"

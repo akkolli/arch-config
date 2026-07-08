@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+key="${1:-}"
+
+if [[ "$key" != "C" && "$key" != "V" ]]; then
+  echo "usage: hypr-smart-clipboard C|V" >&2
+  exit 2
+fi
+
+active_window="$(hyprctl activewindow -j 2>/dev/null || true)"
+window_id="$(jq -r '[.class, .initialClass] | map(select(. != null)) | join(" ") | ascii_downcase' <<<"$active_window")"
+
+case "$window_id" in
+  *ghostty*|*com.mitchellh.ghostty*|*kitty*|*alacritty*|*wezterm*|*foot*)
+    mods="CTRL_SHIFT"
+    ;;
+  *)
+    mods="CTRL"
+    ;;
+esac
+
+hyprctl dispatch sendshortcut "$mods, $key, activewindow" >/dev/null

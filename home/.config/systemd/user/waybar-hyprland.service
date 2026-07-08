@@ -1,0 +1,20 @@
+[Unit]
+Description=Waybar for Hyprland
+Documentation=https://github.com/Alexays/Waybar/wiki/
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/sleep 1
+ExecStart=/usr/bin/waybar
+ExecReload=/usr/bin/kill -SIGUSR2 $MAINPID
+Slice=session.slice
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,25 @@
+# Generated Ocean colors. This file is selected by ~/.config/ghostty/config.
+
+background = #071013
+foreground = #d7e5d6
+cursor-color = #35b3b0
+
+selection-background = #173741
+selection-foreground = #d7e5d6
+
+palette = 0=#071013
+palette = 1=#d47f72
+palette = 2=#35b3b0
+palette = 3=#d8d2a4
+palette = 4=#2f7fbf
+palette = 5=#6f8ed6
+palette = 6=#66cfc9
+palette = 7=#d7e5d6
+palette = 8=#50686d
+palette = 9=#e59689
+palette = 10=#5dd0cd
+palette = 11=#ebe3b7
+palette = 12=#5fa8dc
+palette = 13=#8fabee
+palette = 14=#8ee4df
+palette = 15=#f4f8ec

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+choice="$(printf "anime\nforest\nmountain\nocean\n" | rofi -dmenu -p "Theme" || true)"
+
+[ -z "$choice" ] && exit 0
+
+case "$choice" in
+  anime|forest|mountain|ocean)
+    "$HOME/.local/bin/theme-switch" "$choice" >>"$HOME/.cache/theme-switch.log" 2>&1
+    ;;
+esac

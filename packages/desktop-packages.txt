@@ -13,6 +13,7 @@ hyprland
 hyprlock
 hyprpaper
 hyprpolkitagent
+hyprshutdown
 jq
 json-glib
 libnotify

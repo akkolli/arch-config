@@ -20,4 +20,5 @@ case "$window_id" in
     ;;
 esac
 
-hyprctl dispatch sendshortcut "$mods, $key, activewindow" >/dev/null
+dispatcher="hl.dsp.send_shortcut({ mods = \"$mods\", key = \"$key\", window = \"activewindow\" })"
+hyprctl dispatch "$dispatcher" >/dev/null

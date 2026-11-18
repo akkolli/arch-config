@@ -2,7 +2,7 @@
 set -euo pipefail
 
 choice="$(
-  printf 'lock\nlogout\nreboot\nshutdown\n' |
+  printf 'lock\nsuspend\nlogout\nreboot\nshutdown\n' |
     rofi -dmenu -p Power -theme-str 'window { width: 280px; }' || true
 )"
 
@@ -12,8 +12,15 @@ case "$choice" in
   lock)
     "$HOME/.local/share/quickshell-lockscreen/lock.sh"
     ;;
+  suspend)
+    systemctl suspend
+    ;;
   logout)
-    hyprctl dispatch exit
+    if command -v hyprshutdown >/dev/null 2>&1; then
+      hyprshutdown
+    else
+      hyprctl dispatch 'hl.dsp.exit()'
+    fi
     ;;
   reboot)
     systemctl reboot
